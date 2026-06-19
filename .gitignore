@@ -1,0 +1,12 @@
+# Editor / OS noise
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Don't ignore the packaged .skill file — that's the deliverable
+# (but do ignore any dev artifacts)
+*.skill.tmp
