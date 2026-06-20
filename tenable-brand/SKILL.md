@@ -76,6 +76,160 @@ important element on the screen.
 
 ---
 
+## Dark mode vs. Light mode
+
+Both modes are valid Tenable brand expressions. Dark mode (Soft Black backgrounds,
+White text, Yellow accents) is the iconic look — that's what most Tenable marketing
+and product UI uses. Light mode (White backgrounds, Soft Black text, Yellow as
+accent fills only) is appropriate for content-heavy contexts: documentation,
+reports, dense forms, anywhere users may print, or accessibility scenarios where
+dark mode increases eye strain.
+
+The palette is identical across both modes — only the role of each color flips.
+
+### Dark mode tokens
+
+| Role | Value | Notes |
+|------|-------|-------|
+| Background | `#1E2426` | Soft Black |
+| Surface (cards, panels) | `rgba(255,255,255,0.05)` | overlay on Soft Black |
+| Elevated surface (hover) | `rgba(255,255,255,0.08)` | |
+| Subtle border | `rgba(255,255,255,0.10)` | |
+| Prominent border | `rgba(255,255,255,0.20)` | |
+| Primary text | `#FFFFFF` | |
+| Secondary text | `rgba(255,255,255,0.60)` | |
+| Muted text | `rgba(255,255,255,0.40)` | |
+| Accent (as text) | `#E7FF00` | ✓ allowed |
+| Accent (as fill) | `#E7FF00` with `#1E2426` text inside | primary buttons, CTAs |
+
+### Light mode tokens
+
+| Role | Value | Notes |
+|------|-------|-------|
+| Background | `#FFFFFF` | White |
+| Surface (cards, panels) | `rgba(30,36,38,0.04)` | overlay on White |
+| Elevated surface (hover) | `rgba(30,36,38,0.06)` | |
+| Subtle border | `rgba(30,36,38,0.10)` | |
+| Prominent border | `rgba(30,36,38,0.20)` | |
+| Primary text | `#1E2426` | Soft Black |
+| Secondary text | `rgba(30,36,38,0.70)` | |
+| Muted text | `rgba(30,36,38,0.50)` | |
+| Accent (as text) | ✗ NEVER `#E7FF00` on white | fails contrast |
+| Accent (as fill) | `#E7FF00` with `#1E2426` text inside | only sanctioned use |
+
+### The Highlight Yellow asymmetry
+
+This is the rule that genuinely differs between modes:
+
+- **Dark mode**: Yellow works as text OR as fill. Both `#E7FF00` on `#1E2426`
+  and `#1E2426` on `#E7FF00` pass contrast.
+- **Light mode**: Yellow is **fill-only**. Yellow text on white is forbidden.
+  A "primary action" in light mode is always a yellow rectangle with Soft Black
+  text inside — never yellow text floating on a white background.
+
+This is the most common brand violation in light mode. If you're tempted to put
+yellow text on white, either change the text color to Soft Black or wrap the
+text in a yellow fill.
+
+### Severity colors work in both modes
+
+The data palette (Orange, Yellow, Blue, Green, Gray) is bright enough to read
+in both modes without adjustment. Always pair the severity color (as background)
+with Soft Black text — white text on the severity colors fails contrast:
+
+```html
+<!-- Critical badge — works in dark OR light mode -->
+<span style="background: #FF8837; color: #1E2426; padding: 2px 8px; border-radius: 3px;">
+  CRITICAL
+</span>
+```
+
+### Implementation patterns
+
+**Option A — respect OS preference automatically** (no UI toggle, simplest):
+
+```css
+:root {
+  --bg: #FFFFFF;
+  --bg-surface: rgba(30, 36, 38, 0.04);
+  --border: rgba(30, 36, 38, 0.10);
+  --text: #1E2426;
+  --text-muted: rgba(30, 36, 38, 0.60);
+  --accent: #E7FF00;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #1E2426;
+    --bg-surface: rgba(255, 255, 255, 0.05);
+    --border: rgba(255, 255, 255, 0.10);
+    --text: #FFFFFF;
+    --text-muted: rgba(255, 255, 255, 0.60);
+    --accent: #E7FF00;
+  }
+}
+
+body {
+  background: var(--bg);
+  color: var(--text);
+}
+```
+
+**Option B — explicit toggle** (gives users a choice; recommended for long-session tools):
+
+```css
+:root,
+[data-theme="light"] {
+  --bg: #FFFFFF;
+  --bg-surface: rgba(30, 36, 38, 0.04);
+  --border: rgba(30, 36, 38, 0.10);
+  --text: #1E2426;
+  --text-muted: rgba(30, 36, 38, 0.60);
+  --accent: #E7FF00;
+}
+
+[data-theme="dark"] {
+  --bg: #1E2426;
+  --bg-surface: rgba(255, 255, 255, 0.05);
+  --border: rgba(255, 255, 255, 0.10);
+  --text: #FFFFFF;
+  --text-muted: rgba(255, 255, 255, 0.60);
+  --accent: #E7FF00;
+}
+```
+
+```js
+// Toggle handler
+const toggle = () => {
+  const current = document.documentElement.getAttribute('data-theme') || 'light';
+  document.documentElement.setAttribute('data-theme', current === 'dark' ? 'light' : 'dark');
+};
+```
+
+**Tailwind dark mode**: add `darkMode: 'class'` to `tailwind.config.js`, then use `dark:` variants:
+
+```html
+<div class="bg-white dark:bg-tenable-black text-tenable-black dark:text-white">
+  <button class="bg-tenable-yellow text-tenable-black px-4 py-2 rounded">
+    Primary action  <!-- yellow fill works in both modes -->
+  </button>
+</div>
+```
+
+```js
+document.documentElement.classList.toggle('dark');
+```
+
+### Mode choice heuristic
+
+- **Default to dark mode** for: dashboards, demos, hero pages, marketing surfaces,
+  any UI showcasing the brand
+- **Use light mode** for: long-form reading (docs, reports), data-entry forms,
+  printable content, accessibility-first scenarios
+- **Support both with a toggle** for: customer-facing tools used in long sessions
+
+---
+
 ## Data palette
 
 Use these *only* for data visualization where you need more than three colors to
@@ -157,23 +311,32 @@ matter).
 
 ## Ready-to-use snippets
 
-### CSS variables
+### CSS variables (with light + dark modes)
 
 ```css
-:root {
-  /* Primary */
+:root,
+[data-theme="light"] {
+  /* Primary palette */
   --tenable-black: #1E2426;
   --tenable-white: #FFFFFF;
   --tenable-yellow: #E7FF00;
 
-  /* Data palette */
+  /* Light-mode role tokens */
+  --bg: #FFFFFF;
+  --bg-surface: rgba(30, 36, 38, 0.04);
+  --border: rgba(30, 36, 38, 0.10);
+  --text: #1E2426;
+  --text-muted: rgba(30, 36, 38, 0.60);
+  --accent: #E7FF00;
+
+  /* Data palette (mode-agnostic) */
   --data-gray: #44494B;
   --data-blue: #4EA5FF;
   --data-green: #71FFC6;
   --data-purple: #BB8FF2;
   --data-orange: #FF8837;
 
-  /* Severity mapping */
+  /* Severity (mode-agnostic; always paired with --tenable-black text) */
   --sev-critical: #FF8837;
   --sev-high: #E7FF00;
   --sev-medium: #4EA5FF;
@@ -181,9 +344,28 @@ matter).
   --sev-info: #44494B;
 }
 
+[data-theme="dark"] {
+  --bg: #1E2426;
+  --bg-surface: rgba(255, 255, 255, 0.05);
+  --border: rgba(255, 255, 255, 0.10);
+  --text: #FFFFFF;
+  --text-muted: rgba(255, 255, 255, 0.60);
+  --accent: #E7FF00;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme]) {
+    --bg: #1E2426;
+    --bg-surface: rgba(255, 255, 255, 0.05);
+    --border: rgba(255, 255, 255, 0.10);
+    --text: #FFFFFF;
+    --text-muted: rgba(255, 255, 255, 0.60);
+  }
+}
+
 body {
-  background: var(--tenable-black);
-  color: var(--tenable-white);
+  background: var(--bg);
+  color: var(--text);
   font-family: "Work Sans", system-ui, -apple-system, sans-serif;
   letter-spacing: -0.03em;
 }
@@ -194,6 +376,7 @@ body {
 ```js
 // tailwind.config.js
 export default {
+  darkMode: 'class',  // toggle dark mode by adding `dark` class to <html>
   theme: {
     extend: {
       colors: {
@@ -219,6 +402,20 @@ export default {
     },
   },
 };
+```
+
+Use `dark:` variants on every component that needs both modes:
+
+```html
+<body class="bg-white dark:bg-tenable-black text-tenable-black dark:text-white">
+  <div class="bg-black/[0.04] dark:bg-white/5 border border-black/10 dark:border-white/10 rounded-lg p-4">
+    <h2 class="text-tenable-black dark:text-white">Card title</h2>
+    <p class="text-tenable-black/60 dark:text-white/60">Secondary text</p>
+    <button class="bg-tenable-yellow text-tenable-black px-4 py-2 rounded">
+      Primary action
+    </button>
+  </div>
+</body>
 ```
 
 In HTML, load Work Sans:
@@ -274,11 +471,13 @@ run.font.color.rgb = RGBColor(0xE7, 0xFF, 0x00)
 
 When producing any Tenable-branded output, run through this checklist:
 
-- [ ] Background is Soft Black or White (not yellow)
-- [ ] Body text contrasts against background (not yellow-on-white or white-on-yellow)
+- [ ] Mode is chosen intentionally (dark for dashboards/demos, light for docs/forms)
+- [ ] Background is Soft Black (dark mode) or White (light mode)
+- [ ] Body text contrasts against background — never yellow on white, never white on yellow
+- [ ] In **light mode**, Highlight Yellow appears only as a fill (with Soft Black text inside), never as text
 - [ ] Highlight Yellow is reserved for ≤ 1–2 actionable items per view
 - [ ] Font is Aeonik Pro (or Work Sans with -3% tracking)
-- [ ] Severity uses Orange/Yellow/Blue/Green/Gray — not Red
+- [ ] Severity badges use Orange/Yellow/Blue/Green/Gray fills with Soft Black text — not Red, not white text
 - [ ] If reproducing the Iris, only doing so in official Tenable deliverables
 
-If all six pass, the output is on brand.
+If all eight pass, the output is on brand.

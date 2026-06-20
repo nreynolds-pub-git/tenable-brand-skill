@@ -20,11 +20,12 @@ It's particularly useful for:
 - Primary color palette with exact hex codes (Soft Black `#1E2426`, White, Highlight Yellow `#E7FF00`)
 - Accessibility table — the six allowed color combinations and the two forbidden ones (yellow-on-white, white-on-yellow)
 - Highlight Yellow usage rules ("reserve for actionable items and key information")
+- **Dark mode vs. light mode** — when to use each, role tokens for both, the Highlight-Yellow-asymmetry rule (yellow text is allowed on dark backgrounds but never on white), and implementation patterns for both `prefers-color-scheme` and explicit-toggle approaches
 - Full data palette for charts (Gray, Blue, Green, Purple, Orange)
-- Canonical severity color mapping for security data (Critical → Orange, High → Yellow, Medium → Blue, Low → Green, Info → Gray)
+- Canonical severity color mapping for security data (Critical → Orange, High → Yellow, Medium → Blue, Low → Green, Info → Gray) — works in both modes
 - Typography rules (Aeonik Pro primary, Work Sans Google Font fallback with -3% tracking)
-- Ready-to-use code snippets: CSS variables, Tailwind config, Python color dicts, python-docx RGBColor examples
-- A self-verification checklist
+- Ready-to-use code snippets: CSS variables (light + dark), Tailwind config with `darkMode: 'class'`, HTML examples with `dark:` variants, Python color dicts, python-docx RGBColor examples
+- A self-verification checklist that covers mode choice and the easy-to-miss light-mode-specific rules
 
 The skill description is intentionally pushy — it triggers any time the user mentions dashboards, reports, or visual deliverables, even without explicitly saying "Tenable brand." Since Tenable folks default to Tenable styling, this catches more situations.
 
