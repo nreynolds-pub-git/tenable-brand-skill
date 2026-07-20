@@ -267,18 +267,199 @@ reads as urgent without breaking brand.
 
 ## Typography
 
-| Context                                    | Font                            |
-|--------------------------------------------|---------------------------------|
-| Print, native apps, anywhere Aeonik is licensed | **Aeonik Pro**             |
-| Web, Google Slides, anywhere Aeonik isn't available | **Work Sans** (Google Fonts) |
+> **Font-lock rule.** Tenable output is set in **Work Sans** (Google Fonts).
+> That's the only font — for web, HTML artifacts, Google Slides, PowerPoint /
+> .pptx, Word / .docx, matplotlib, charts, dashboards, reports, everything.
+> If you are about to emit type in any other family — **Calibri**, Arial,
+> Helvetica, Roboto, "system-ui" on its own, the pptx default, the docx default,
+> or a Word/PowerPoint theme font — stop and switch to Work Sans. There is no
+> case in which a Tenable deliverable ships with Calibri. If the tool you're
+> using defaults to something else, the fix is to override the font on every
+> run, not to leave it.
 
-When using Work Sans as a substitute, **set letter-spacing to -3%** (`tracking: -0.03em`
-in Tailwind, `letter-spacing: -0.03em` in CSS). This is a real, sanctioned brand
-adjustment that closes the visual gap to Aeonik.
+Set letter-spacing to **-3%** (`tracking: -0.03em` in Tailwind, `letter-spacing:
+-0.03em` in CSS) on Work Sans everywhere. This is a real, sanctioned brand
+adjustment.
 
 Fall back chain (CSS):
 ```css
 font-family: "Work Sans", system-ui, -apple-system, sans-serif;
+letter-spacing: -0.03em;
+```
+
+### Weights
+
+Tenable uses five weights. Do not introduce Black, ExtraBold, or Bold — they are
+not part of the system. Use the exact face name in code (not the family name
+plus a `bold`/`weight` flag; see the PowerPoint note).
+
+| Weight             | CSS `font-weight` |
+|--------------------|-------------------|
+| Work Sans Thin     | 100               |
+| Work Sans Light    | 300               |
+| Work Sans          | 400 (Regular)     |
+| Work Sans Medium   | 500               |
+| Work Sans SemiBold | 600               |
+
+### Hierarchy
+
+Every piece of typography Tenable produces slots into one of these five levels.
+**All levels are sentence case.** Do not use Title Case, ALL CAPS (except for
+short tags/eyebrows), or ad-hoc weights outside this table.
+
+| Level        | Weight            | Case          | Used for                                                              |
+|--------------|-------------------|---------------|-----------------------------------------------------------------------|
+| XL Headline  | **Light**         | sentence case | Covers, divider slides, section openers, billboards, oversized comps  |
+| Headline     | Regular           | sentence case | Standard headlines on content slides / pages                          |
+| Subhead      | Regular           | sentence case | Supports the headline with detail; long-form content                  |
+| Body copy    | Light             | sentence case | All primary reading text                                              |
+| Caption      | Medium            | sentence case | Captions, headers, footers, small notes; +5% letter-spacing           |
+
+Scale follows the **50/50 rule**: each level is no more than half the size of the
+level above it (e.g. 72 pt XL → 36 pt Headline → 18 pt Subhead → 9 pt Body).
+Line-spacing: 90% for headlines, 110% for subheads, 125% for body/caption.
+Letter-spacing: 0% for everything, +5% for caption only; and the -3% Work Sans
+adjustment applies on top of that when Work Sans is the actual face.
+
+### Slide titles (all decks, all tools)
+
+Slide titles — cover titles, section headers, per-slide headlines on 16:9 decks —
+are **Work Sans Light** by default. They are XL Headlines in the hierarchy above.
+The only exception is a small in-content sub-title that acts as a Headline rather
+than a cover — that one is Work Sans Regular. When in doubt on a slide, use Light.
+
+Do **not** produce a bold slide title. Do not use `run.font.bold = True` to
+"darken" a title — that forces the Bold face and defeats Light. Change the size
+or color for emphasis instead.
+
+### PowerPoint / .pptx — python-pptx enforcement
+
+**This is the section most likely to be skipped, and it's the one that produced
+the Calibri bug.** python-pptx does **not** apply the deck's theme font unless
+you explicitly set `run.font.name` on every run you create — and the default
+PowerPoint theme font is Calibri. Setting the text on a title placeholder
+(`slide.shapes.title.text = "..."`) inherits the theme font, which will be
+Calibri unless overridden per-run.
+
+**Rule:** every run in every shape in every slide gets its font name set
+explicitly. No exceptions — not for titles, not for body, not for table cells,
+not for chart labels, not for footers.
+
+Drop-in helper — paste this into any script that produces or edits a Tenable
+deck, and route every run through it:
+
+```python
+from pptx.util import Pt
+from pptx.dml.color import RGBColor
+
+TENABLE_BLACK  = RGBColor(0x1E, 0x24, 0x26)
+TENABLE_WHITE  = RGBColor(0xFF, 0xFF, 0xFF)
+TENABLE_YELLOW = RGBColor(0xE7, 0xFF, 0x00)
+
+# Work Sans face-name mapping. Use the specific face name (e.g. "Work Sans
+# Light"), NOT the family name plus a bold flag — the bold flag forces the
+# Bold face and defeats Light / Medium.
+_FACES = {
+    "xl_headline": "Work Sans Light",     # cover / section / big titles
+    "headline":    "Work Sans",           # standard headline
+    "subhead":     "Work Sans",           # subhead
+    "body":        "Work Sans Light",     # body copy
+    "caption":     "Work Sans Medium",    # captions, headers, footers
+}
+
+def apply_tenable_font(run, level="body", size_pt=None, color=None):
+    """Force a run onto the Tenable typography system.
+
+    `level` is one of: xl_headline, headline, subhead, body, caption.
+    Always call this on runs you create — python-pptx will otherwise fall back
+    to the theme font (Calibri) and produce an off-brand deck.
+    """
+    run.font.name = _FACES[level]
+    run.font.bold = False           # explicit — do not let a template override
+    run.font.italic = False
+    if size_pt is not None:
+        run.font.size = Pt(size_pt)
+    if color is not None:
+        run.font.color.rgb = color
+```
+
+Creating a new title on a slide — the pattern is *never* `.text = "..."`,
+always add a run and style it:
+
+```python
+title_tf = slide.shapes.title.text_frame
+title_tf.clear()                       # drop the inherited theme run
+p = title_tf.paragraphs[0]
+run = p.add_run()
+run.text = "Optimizing business outcomes"
+apply_tenable_font(run, level="xl_headline", size_pt=54, color=TENABLE_WHITE)
+```
+
+**Updating an existing legacy deck** (the common case — a customer's old-brand
+deck that needs to be re-skinned). Setting the theme won't fix the runs that
+already have hard-coded `<a:latin typeface="Calibri"/>` markup. You have to walk
+every run and reset the font:
+
+```python
+from pptx import Presentation
+
+prs = Presentation("legacy.pptx")
+
+def walk_runs(shape):
+    if shape.has_text_frame:
+        for para in shape.text_frame.paragraphs:
+            for run in para.runs:
+                yield run
+    if shape.has_table:
+        for row in shape.table.rows:
+            for cell in row.cells:
+                for para in cell.text_frame.paragraphs:
+                    for run in para.runs:
+                        yield run
+    if shape.shape_type == 6:      # GROUP
+        for child in shape.shapes:
+            yield from walk_runs(child)
+
+for slide in prs.slides:
+    for shape in slide.shapes:
+        for run in walk_runs(shape):
+            # Decide the level from the placeholder / size / position.
+            # When in doubt, treat placeholder idx 0 (title) as xl_headline
+            # and everything else as body.
+            level = "xl_headline" if (
+                shape.has_text_frame and shape.is_placeholder
+                and shape.placeholder_format.idx == 0
+            ) else "body"
+            apply_tenable_font(run, level=level)
+
+prs.save("legacy_rebranded.pptx")
+```
+
+Before saving any `.pptx`, do a final self-check: unzip the file and grep for
+`Calibri` in `ppt/slides/*.xml`. If any hits come back, a run was missed —
+loop over them again. Getting zero Calibri hits is the definition of "done."
+
+### Word / .docx — python-docx enforcement
+
+Same principle as PowerPoint: python-docx will use the document's default
+theme (Calibri on a blank doc) unless you set `run.font.name` explicitly. For
+Word body reports, the mapping collapses to two faces most of the time —
+Work Sans Light for body copy, Work Sans Medium for headings / captions:
+
+```python
+from docx.shared import Pt, RGBColor
+
+TENABLE_BLACK = RGBColor(0x1E, 0x24, 0x26)
+
+def apply_tenable_font_docx(run, level="body", size_pt=None):
+    faces = {"heading": "Work Sans", "subheading": "Work Sans",
+             "body": "Work Sans Light", "caption": "Work Sans Medium",
+             "xl_headline": "Work Sans Light"}
+    run.font.name = faces[level]
+    run.font.bold = False
+    if size_pt is not None:
+        run.font.size = Pt(size_pt)
+    run.font.color.rgb = TENABLE_BLACK
 ```
 
 ### Line length
@@ -397,7 +578,7 @@ export default {
         sans: ['"Work Sans"', 'system-ui', '-apple-system', 'sans-serif'],
       },
       letterSpacing: {
-        'aeonik-match': '-0.03em',
+        'tenable': '-0.03em',   // apply on every text element
       },
     },
   },
@@ -476,8 +657,12 @@ When producing any Tenable-branded output, run through this checklist:
 - [ ] Body text contrasts against background — never yellow on white, never white on yellow
 - [ ] In **light mode**, Highlight Yellow appears only as a fill (with Soft Black text inside), never as text
 - [ ] Highlight Yellow is reserved for ≤ 1–2 actionable items per view
-- [ ] Font is Aeonik Pro (or Work Sans with -3% tracking)
+- [ ] Font is **Work Sans** with -3% tracking — **never Calibri**, Arial, Helvetica, Roboto, or a template default
+- [ ] For .pptx / .docx output, every run has `run.font.name` set explicitly (theme fonts are not enough)
+- [ ] Slide titles are **Work Sans Light** (the face name, not the bold flag); body is Work Sans Light; captions are Work Sans Medium
+- [ ] Text is sentence case at every hierarchy level
 - [ ] Severity badges use Orange/Yellow/Blue/Green/Gray fills with Soft Black text — not Red, not white text
 - [ ] If reproducing the Iris, only doing so in official Tenable deliverables
 
-If all eight pass, the output is on brand.
+If all pass, the output is on brand. For .pptx specifically, the last-mile check
+is: unzip the file and grep `ppt/slides/*.xml` for `Calibri` — zero hits = done.

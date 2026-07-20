@@ -23,8 +23,8 @@ It's particularly useful for:
 - **Dark mode vs. light mode** — when to use each, role tokens for both, the Highlight-Yellow-asymmetry rule (yellow text is allowed on dark backgrounds but never on white), and implementation patterns for both `prefers-color-scheme` and explicit-toggle approaches
 - Full data palette for charts (Gray, Blue, Green, Purple, Orange)
 - Canonical severity color mapping for security data (Critical → Orange, High → Yellow, Medium → Blue, Low → Green, Info → Gray) — works in both modes
-- Typography rules (Aeonik Pro primary, Work Sans Google Font fallback with -3% tracking)
-- Ready-to-use code snippets: CSS variables (light + dark), Tailwind config with `darkMode: 'class'`, HTML examples with `dark:` variants, Python color dicts, python-docx RGBColor examples
+- Typography rules — **Work Sans** with -3% tracking, the full five-weight system (Thin / Light / Regular / Medium / SemiBold), the hierarchy (XL Headline → Headline → Subhead → Body → Caption), and a **font-lock rule that keeps Calibri out of .pptx and .docx output**
+- Ready-to-use code snippets: CSS variables (light + dark), Tailwind config with `darkMode: 'class'`, HTML examples with `dark:` variants, Python color dicts, python-docx RGBColor examples, and a drop-in `apply_tenable_font()` helper for python-pptx that overrides the theme font on every run
 - A self-verification checklist that covers mode choice and the easy-to-miss light-mode-specific rules
 
 The skill description is intentionally pushy — it triggers any time the user mentions dashboards, reports, or visual deliverables, even without explicitly saying "Tenable brand." Since Tenable folks default to Tenable styling, this catches more situations.
